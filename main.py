@@ -57,7 +57,7 @@ class UpdateData:
             rank_item['rank'] = a.get_text().split()[0]
             rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
             rank_item['team_rank'] = a.get_text().split()[-1]
-            # mongo_data.update_rank_data(self.name, rank_item)
+            #todo mongo_data.update_rank_data(self.name, rank_item)
 
     def llf(vs1_odds, vs1_rank, vs2_rank, ):
         pass
