@@ -6,4 +6,4 @@ MONGODB_PORT = 27017
 # 数据库名称
 MONGODB_DBNAME = "spinach.sgnb"
 # 存放数据的表名称
-MONGODB_SHEETNAME = "dota2"
+MONGODB_SHEETNAME = ""
