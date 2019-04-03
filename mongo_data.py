@@ -25,7 +25,7 @@ def update_tuhao_data(match_id, data):
     post = mydb['tuhao']
     result = post.update_one({'id': match_id}, {"$set": data}, upsert=True)
     print(result.raw_result)
-
+#todo 更新rank数据
 
 if __name__ == '__main__':
     match_id = '565'

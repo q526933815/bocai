@@ -1,6 +1,7 @@
 import requests
 import json
 import mongo_data
+from bs4 import BeautifulSoup
 
 
 class UpdateData:
@@ -40,8 +41,23 @@ class UpdateData:
             data = json.loads(req.text)
             mongo_data.update_tuhao_data(match_id, data)
 
-    def get_rank(team_name):
-        pass
+    def get_rank(self):
+        if self.name == 'dota2':
+            url = 'https://www.gosugamers.net/dota2/rankings/list'
+        elif self.name == 'csgo':
+            url = 'https://www.gosugamers.net/counterstrike/rankings/list'
+        req = requests.get(url)
+        soup = BeautifulSoup(req.text, "lxml")
+        rank_item = {}
+        a_l = soup.find(class_='ranking-list').find_all('a')
+
+        for a in a_l:
+            # print(a['href'], a.get_text())
+            rank_item['team_id'] = a['href'].split('/')[-1]
+            rank_item['rank'] = a.get_text().split()[0]
+            rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
+            rank_item['team_rank'] = a.get_text().split()[-1]
+            # mongo_data.update_rank_data(self.name, rank_item)
 
     def llf(vs1_odds, vs1_rank, vs2_rank, ):
         pass
@@ -51,8 +67,12 @@ class UpdateData:
         # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
 
 
-if __name__ == '__main__':
+def main():
     myUpdateData = UpdateData('dota2')
     myUpdateData.update_base_data()
     myUpdateData.get_match_list()
     myUpdateData.update_tuhao_data()
+
+
+if __name__ == '__main__':
+    UpdateData.get_rank()
