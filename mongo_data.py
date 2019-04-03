@@ -9,11 +9,13 @@ sheetname = settings.MONGODB_SHEETNAME
 client = pymongo.MongoClient(host=host, port=port)
 # 指定数据库
 mydb = client[dbname]
+
+
 # 存放数据的数据库表名
-post = mydb[sheetname]
 
 
-def update_data(items):
+def update_data(sheet, items):
+    post = mydb[sheet]
     for _ in items:
         result = post.update_one({'id': _['id']}, {"$set": _}, upsert=True)
         print(result.raw_result)
