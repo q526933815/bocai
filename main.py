@@ -42,6 +42,7 @@ class UpdateData:
             mongo_data.update_tuhao_data(match_id, data)
 
     def get_rank(self):
+        """获取队伍的rank排名"""
         if self.name == 'dota2':
             url = 'https://www.gosugamers.net/dota2/rankings/list'
         elif self.name == 'csgo':
