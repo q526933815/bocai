@@ -35,11 +35,11 @@ class UpdateData:
     def update_tuhao_data(self):
         """使用解析到的id列表，更新土豪数据库"""
         print(f'更新土豪榜{len(self.sub_id_list)}条')
-        for match_id in self.sub_id_list:
-            url = f'https://www.dota188.com/api/match/{match_id}/tuhao.do'
+        for _id in self.sub_id_list:
+            url = f'https://www.dota188.com/api/match/{_id}/tuhao.do'
             req = requests.get(url)
-            data = json.loads(req.text)
-            mongo_data.update_tuhao_data(match_id, data)
+            json_data = json.loads(req.text)
+            mongo_data.update_tuhao_data(_id, json_data)
 
     def get_rank(self):
         """获取队伍的rank排名"""
@@ -50,15 +50,15 @@ class UpdateData:
         req = requests.get(url)
         soup = BeautifulSoup(req.text, "lxml")
         rank_item = {}
-        a_l = soup.find(class_='ranking-list').find_all('a')
+        a_list = soup.find(class_='ranking-list').find_all('a')
 
-        for a in a_l:
+        for a in a_list[:30]:
             # print(a['href'], a.get_text())
             rank_item['team_id'] = a['href'].split('/')[-1]
             rank_item['rank'] = a.get_text().split()[0]
             rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
-            rank_item['team_rank'] = a.get_text().split()[-1]
-            # todo mongo_data.update_rank_data(self.name, rank_item)
+            rank_item['team_rank_value'] = a.get_text().split()[-1]
+            mongo_data.update_rank_data(self.name, rank_item)
 
     def llf(vs1_odds, vs1_rank, vs2_rank, ):
         pass
@@ -74,7 +74,8 @@ def main():
     dota2.update_base_data()
     dota2.get_match_list()
     dota2.update_tuhao_data()
+    dota2.get_rank()
 
 
 if __name__ == '__main__':
-    UpdateData.get_rank()
+    main()
