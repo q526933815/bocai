@@ -2,6 +2,8 @@ import requests
 import json
 import mongo_data
 from bs4 import BeautifulSoup
+import datetime
+import time
 
 
 class UpdateData:
@@ -60,12 +62,43 @@ class UpdateData:
             rank_item['team_rank_value'] = a.get_text().split()[-1]
             mongo_data.update_rank_data(self.name, rank_item)
 
-    def llf(vs1_odds, vs1_rank, vs2_rank, ):
+
+class Llf(UpdateData):
+    """从数据库获取数据，判断数据"""
+    odds = ''
+    vs1_rank = ''
+    vs2_rank = ''
+    offer_data = ''
+
+    def get_recent_event_time(self):
+        """获取最近一场的时间"""
+
+        now = datetime.datetime.now()
+        return mongo_data.find_recent_time(self.name, now)
+
+    def get_offer_data(self):
+        offer_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
+        self.offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
+
+    def get_offer_id(self):
         pass
-        # 判断赔率 < 1.1 or > 9
-        # 判断两方队伍排名均 > 30
-        # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
-        # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
+
+    def get_odds(self):
+        pass
+
+    def get_vs_rank(self):
+        pass
+
+    def get_front_league_tuhao(self):
+        pass
+
+
+def llf(vs1_odds, vs1_rank, vs2_rank, ):
+    pass
+    # 判断赔率 < 1.1 or > 9
+    # 判断两方队伍排名均 > 30
+    # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
+    # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
 
 
 def main():
@@ -78,4 +111,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    dota2 = Llf('dota2')
+    dota2.get_offer_data()

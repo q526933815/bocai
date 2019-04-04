@@ -33,6 +33,17 @@ def update_rank_data(sheet_name, item):
     print(result.raw_result)
 
 
+def find_offer_data(sheet_name, time):
+    post = my_db[sheet_name + '_base']
+
+    # result = post.find_one({'sublist.time': {'$gte': time * 1000}})
+    result = post.aggregate([{'$unwind': '$sublist'},
+                             {'$match': {'time': {'$gte': time}}},
+                             {'$sort': {'time': 1}},
+                             {'$limit': 1}, ])
+    offer_data = list(result)[0]
+    print('获取最近比赛数据成功', offer_data['sublist'])
+    return offer_data
 
 
 if __name__ == '__main__':
