@@ -36,6 +36,8 @@ class UpdateData:
 
     def update_tuhao_data(self):
         """使用最新获取解析到的id列表，更新土豪数据库"""
+
+        self.get_sub_list()
         print(f'更新土豪榜{len(self.sub_id_list)}条')
         for _id in self.sub_id_list:
             url = f'https://www.dota188.com/api/match/{_id}/tuhao.do'
@@ -69,59 +71,78 @@ class Llf:
     def __init__(self, name):
         self.name = name
 
-    odds = ''
-    vs1_rank = ''
-    vs2_rank = ''
     offer_data = ''
+    sub_list = []
     recent_time = ''
-    next_time = ''
 
-    def get_sub_data(self):
+    def get_sub_data(self):  # 如果有两个match时间相同就GG了，先不管
         """获取最近一场sub的数据"""
 
         offer_time = datetime.datetime.now()
         self.offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
         self.recent_time = self.offer_data['sublist']['time']
-        self.match_time = self.offer_data['time']
+        match_time = self.offer_data['time']
+        match_id = self.offer_data['id']
+        if self.recent_time == match_time:  # 这里判断是不是前三盘
+            match_data = mongo_data.find_match_by_id(self.name, match_id)
+            self.sub_list = match_data['sublist'][:3]
+        else:
+            self.sub_list = [self.offer_data['sublist']]
 
-    def get_next_time(self):
-        """获取下一场sub的数据"""
+    def get_front_league(self):
+        league_id = self.offer_data['league']['id']
+        mongo_data.find_front_league(self.name, self.recent_time, league_id)
 
-        offer_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
-        self.next_time = offer_data['sublist']['time']
-
-    def get_offer_id(self):
-        pass
-
-    def get_odds(self):
-        pass
-
-    def get_vs_rank(self):
-        pass
-
-    def get_front_league_tuhao(self):
-        pass
+    # def get_next_time(self):
+    #     """获取下一场sub的数据"""
+    #
+    #     offer_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
+    #     offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
+    #     self.next_time = offer_data['sublist']['time']
 
     def send_message(self):
-        """触发推送"""
-        print("推送消息")
+        for sub in self.sub_list:
+            sub = Sub(sub)
+            _ = [sub.llf_rank(), sub.llf_odds(), sub.llf_match(), sub.llf_league()]
+            print(_)
+            if all(_):
+                """触发推送"""
+                print("推送消息", sub['id'])
+
+
+class Sub:
+    def __init__(self, sub):
+        self.sub = sub
+        self.vs1_name = sub['vs1']['name']
+        self.vs2_name = sub['vs2']['name']
+
+    @staticmethod
+    def get_vs_rank(vs_name):
+        """模糊匹配名"""
+        # todo 模糊匹配配算法
+        # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
+        rank = 0
+        return rank
 
     def llf_rank(self):
-        pass
-        # 判断两方队伍排名均 > 30
-        # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
+        """判断两方队伍排名均 > 30"""
+        vs1_rank = self.get_vs_rank(self.vs1_name)
+        vs2_rank = self.get_vs_rank(self.vs2_name)
+        if vs1_rank >= 30 and vs2_rank >= 30:
+
+            return True
+        else:
+            return False
 
     def llf_odds(self):
-        # 判断赔率 < 1.1 or > 9
-        return True
+        odds = self.sub['vs1']['odds']
+        if odds <= 1.1 or odds >= 9:
+            # 判断赔率 < 1.1 or > 9
+            return True
+        else:
+            return False
 
     def llf_match(self):
-        if self.recent_time == self.match_time:
-            """前三个sub的情况"""
-
-        else:
-            """普通情况"""
 
         # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
         return True
@@ -134,7 +155,6 @@ def update_data(name='dota2'):
     """刷新数据"""
     my_update = UpdateData(name)
     my_update.update_base_data()
-    my_update.get_sub_list()
     my_update.update_tuhao_data()
     my_update.get_rank()
 

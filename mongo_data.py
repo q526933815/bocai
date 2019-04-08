@@ -34,6 +34,7 @@ def update_rank_data(sheet_name, item):
 
 
 def find_offer_data(sheet_name, time):
+    time = time * 1000
     post = my_db[sheet_name + '_base']
 
     # result = post.find_one({'sublist.time': {'$gte': time * 1000}})
@@ -55,5 +56,14 @@ def find_match_by_id(sheet_name, match_id):
     return result
 
 
+def find_front_league(sheet_name, time, league_id):
+    time = time * 1000
+    post = my_db[sheet_name + '_base']
+    result = post.find({'$and': [{'league.id': league_id},
+                                 {'time': {'$lte': time}}]}).sort('time', -1).limit(5)
+    for _ in result:
+        print(_)
+
+
 if __name__ == '__main__':
-    find_match_by_id('dota2', 23315)
+    find_front_league('dota2', 1554715059.571715, 2002727)
