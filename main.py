@@ -43,6 +43,7 @@ class UpdateData:
             url = f'https://www.dota188.com/api/match/{_id}/tuhao.do'
             req = requests.get(url)
             json_data = json.loads(req.text)
+            # todo 计算龙钩个数
             mongo_data.update_tuhao_data(_id, json_data)
 
     def get_rank(self):
@@ -90,8 +91,12 @@ class Llf:
             self.sub_list = [self.offer_data['sublist']]
 
     def get_front_league(self):
+        tuhao_data = {}
         league_id = self.offer_data['league']['id']
-        mongo_data.find_front_league(self.name, self.recent_time, league_id)
+        match_data = mongo_data.find_front_league(self.name, self.recent_time, league_id)
+        for match in match_data:
+            for sub in match['sublist']:
+                tuhao_data[sub['id']] = mongo_data.get_tuhao(sub['id'])['longgou']
 
     # def get_next_time(self):
     #     """获取下一场sub的数据"""

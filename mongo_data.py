@@ -61,8 +61,14 @@ def find_front_league(sheet_name, time, league_id):
     post = my_db[sheet_name + '_base']
     result = post.find({'$and': [{'league.id': league_id},
                                  {'time': {'$lte': time}}]}).sort('time', -1).limit(5)
-    for _ in result:
-        print(_)
+    return result
+
+
+def get_tuhao(sub_id):
+    post = my_db['tuhao']
+    result = post.find_one({'id': sub_id})
+
+
 
 
 if __name__ == '__main__':
