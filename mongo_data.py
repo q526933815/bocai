@@ -21,9 +21,9 @@ def update_data(sheet_name, items):
         print(result.raw_result)
 
 
-def update_tuhao_data(match_id, data):
+def update_tuhao_data(sub_id, data):
     post = my_db['tuhao']
-    result = post.update_one({'id': match_id}, {"$set": data}, upsert=True)
+    result = post.update_one({'id': sub_id}, {"$set": data}, upsert=True)
     print(result.raw_result)
 
 
@@ -40,14 +40,20 @@ def find_offer_data(sheet_name, time):
     result = post.aggregate([{'$unwind': '$sublist'},
                              {'$match': {'time': {'$gte': time}}},
                              {'$sort': {'time': 1}},
-                             {'$limit': 1}, ])
+                             {'$limit': 1}])
     offer_data = list(result)[0]
+    # for _ in offer_data:
+    #     print(_)
     print('获取最近比赛数据成功', offer_data)
-    # todo 应该获取列表，因为有可能同时开盘，喵的，啊啊啊
     return offer_data
 
 
+def find_match_by_id(sheet_name, match_id):
+    post = my_db[sheet_name + '_base']
+    result = post.find_one({'id': match_id})
+    print(result)
+    return result
+
+
 if __name__ == '__main__':
-    match_id = '565'
-    # data = {'ihf': '125', 'a': '16'}
-    # update_tuhao_data(match_id, data)
+    find_match_by_id('dota2', 23315)
