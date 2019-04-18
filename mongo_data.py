@@ -34,10 +34,9 @@ def update_rank_data(sheet_name, item):
 
 
 def find_offer_data(sheet_name, time):
+    """获取只包含1个sub的match"""
     time = time * 1000
     post = my_db[sheet_name + '_base']
-
-    # result = post.find_one({'sublist.time': {'$gte': time * 1000}})
     result = post.aggregate([{'$unwind': '$sublist'},
                              {'$match': {'time': {'$gte': time}}},
                              {'$sort': {'time': 1}},
@@ -56,19 +55,25 @@ def find_match_by_id(sheet_name, match_id):
     return result
 
 
-def find_front_league(sheet_name, time, league_id):
+def find_match_by_time(sheet_name, match_time):
+    post = my_db[sheet_name + '_base']
+    result = post.find_one({'time': match_time})
+    print(result)
+    return result
+
+
+def find_front_league(sheet_name, time, league_id, limit=10):
     time = time * 1000
     post = my_db[sheet_name + '_base']
     result = post.find({'$and': [{'league.id': league_id},
-                                 {'time': {'$lte': time}}]}).sort('time', -1).limit(5)
+                                 {'time': {'$lte': time}}]}).sort('time', -1).limit(limit)  # 前10场
     return result
 
 
 def get_tuhao(sub_id):
     post = my_db['tuhao']
     result = post.find_one({'id': sub_id})
-
-
+    return result
 
 
 if __name__ == '__main__':

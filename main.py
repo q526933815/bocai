@@ -3,7 +3,7 @@ import json
 import mongo_data
 from bs4 import BeautifulSoup
 import datetime
-import time
+import numpy as np
 
 
 class UpdateData:
@@ -76,50 +76,61 @@ class Llf:
     sub_list = []
     recent_time = ''
 
-    def get_sub_data(self):  # 如果有两个match时间相同就GG了，先不管
-        """获取最近一场sub的数据"""
+    def get_sub_data(self):
+        """获取最近sub的list数据"""
 
-        offer_time = datetime.datetime.now()
-        self.offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
+        time_now = datetime.datetime.now()
+        self.offer_data = mongo_data.find_offer_data(self.name, time_now.timestamp())
         self.recent_time = self.offer_data['sublist']['time']
         match_time = self.offer_data['time']
-        match_id = self.offer_data['id']
         if self.recent_time == match_time:  # 这里判断是不是前三盘
-            match_data = mongo_data.find_match_by_id(self.name, match_id)
-            self.sub_list = match_data['sublist'][:3]
+            match_result = mongo_data.find_match_by_time(self.name, match_time)
+            self.sub_list = match_result['sublist'][:3]  # 获取所有match的前三个sub
         else:
             self.sub_list = [self.offer_data['sublist']]
 
+    @staticmethod
+    def get_longgo(sub_id):
+        longgo_cot = 0
+        tuhao_row = mongo_data.get_tuhao(sub_id)
+
+        for tuhao in tuhao_row['datas']['list']:
+            for obj in tuhao['items']:
+                if obj['name'] == '龙爪弯钩':
+                    longgo_cot += 1
+        return longgo_cot
+
     def get_front_league(self):
+        """获取相同league之前sub的龙钩量"""
+
         tuhao_data = {}
         league_id = self.offer_data['league']['id']
         match_data = mongo_data.find_front_league(self.name, self.recent_time, league_id)
         for match in match_data:
             for sub in match['sublist']:
-                tuhao_data[sub['id']] = mongo_data.get_tuhao(sub['id'])['longgou']
-
-    # def get_next_time(self):
-    #     """获取下一场sub的数据"""
-    #
-    #     offer_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
-    #     offer_data = mongo_data.find_offer_data(self.name, offer_time.timestamp())
-    #     self.next_time = offer_data['sublist']['time']
+                longgo_cot = self.get_longgo(sub['id'])
+                tuhao_data[sub['id']] = longgo_cot
+        return tuhao_data
 
     def send_message(self):
+        """是否推送"""
         for sub in self.sub_list:
-            sub = Sub(sub)
-            _ = [sub.llf_rank(), sub.llf_odds(), sub.llf_match(), sub.llf_league()]
+            tuhao_data = self.get_front_league()
+            sub = Sub(sub, tuhao_data)
+            _ = [sub.llf_rank(), sub.llf_odds(), sub.llf_match()]
             print(_)
             if all(_):
                 """触发推送"""
-                print("推送消息", sub['id'])
+                print("推送消息:关注这场比赛", sub.id, sub.vs1_name, sub.vs2_name)
 
 
 class Sub:
-    def __init__(self, sub):
+    def __init__(self, sub, tuhao_data):
         self.sub = sub
+        self.tuhao_data = tuhao_data
         self.vs1_name = sub['vs1']['name']
         self.vs2_name = sub['vs2']['name']
+        self.id = sub['id']
 
     @staticmethod
     def get_vs_rank(vs_name):
@@ -147,13 +158,11 @@ class Sub:
         else:
             return False
 
-    def llf_match(self):
+    def llf_match(self, n=3):
 
-        # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
-        return True
-
-    def llf_league(self):
-        return True
+        if self.tuhao_data[self.id] >= np.median(self.tuhao_data.values()) * n:
+            # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
+            return True
 
 
 def update_data(name='dota2'):
@@ -170,17 +179,24 @@ def main():
     update_data(name='dota2')
     dota2 = Llf('dota2')
     dota2.get_sub_data()
-    while dota2.recent_time - datetime.datetime.now() == 5:
-        update_data(name='dota2')
+    while True:
+        if datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000) \
+                - datetime.datetime.now() \
+                == datetime.timedelta(seconds=300):
 
-        dota2.get_sub_data()
-        if dota2.recent_time - datetime.datetime.now() < 5:
-            dota2.send_msessage()
+            update_data(name='dota2')
+            dota2.get_sub_data()
+
+        if datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000) \
+                - datetime.datetime.now() \
+                < datetime.timedelta(seconds=300):
+            dota2.send_message()
         else:
             print('不推送')
 
 
 if __name__ == '__main__':
-    dota2 = Llf('dota2')
-    dota2.get_sub_data()
-    print(dota2.recent_time)
+    main()
+    # dota2 = Llf('dota2')
+    # dota2.get_sub_data()
+    # print(dota2.recent_time)
