@@ -136,6 +136,7 @@ class Sub:
     @staticmethod
     def get_vs_rank(vs_name):
         """模糊匹配名"""
+
         # todo 模糊匹配配算法
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
         rank = 0
