@@ -4,6 +4,7 @@ import mongo_data
 from bs4 import BeautifulSoup
 import datetime
 import numpy as np
+import time
 
 
 class UpdateData:
@@ -11,10 +12,9 @@ class UpdateData:
 
     def __init__(self, name):
         self.name = name
+        self.sub_id_list = []
 
     base_data = ''
-
-    sub_id_list = []
 
     def update_base_data(self):
         """获取当前网站上显示的所有比赛，更新基础数据库"""
@@ -29,6 +29,7 @@ class UpdateData:
     def get_sub_list(self):
         """解析当前网站上的比赛上所有的可下注场，获取id列表"""
         print('获取更新列表')
+        self.sub_id_list = []
         for data in self.base_data['datas']['list']:
             for sub in data['sublist']:
                 sub_id = sub['id']
@@ -43,7 +44,6 @@ class UpdateData:
             url = f'https://www.dota188.com/api/match/{_id}/tuhao.do'
             req = requests.get(url)
             json_data = json.loads(req.text)
-            # todo 计算龙钩个数
             mongo_data.update_tuhao_data(_id, json_data)
 
     def get_rank(self):
@@ -91,6 +91,7 @@ class Llf:
 
     @staticmethod
     def get_longgo(sub_id):
+        """计算龙钩个数"""
         longgo_cot = 0
         tuhao_row = mongo_data.get_tuhao(sub_id)
 
@@ -118,7 +119,7 @@ class Llf:
             tuhao_data = self.get_front_league()
             sub = Sub(sub, tuhao_data)
             _ = [sub.llf_rank(), sub.llf_odds(), sub.llf_match()]
-            print(_)
+            print(sub.id, _)
             if all(_):
                 """触发推送"""
                 print("推送消息:关注这场比赛", sub.id, sub.vs1_name, sub.vs2_name)
@@ -151,6 +152,7 @@ class Sub:
             return False
 
     def llf_odds(self):
+        """判断赔率"""
         odds = self.sub['vs1']['odds']
         if odds <= 1.1 or odds >= 9:
             # 判断赔率 < 1.1 or > 9
@@ -159,10 +161,12 @@ class Sub:
             return False
 
     def llf_match(self, n=3):
-
-        if self.tuhao_data[self.id] >= np.median(self.tuhao_data.values()) * n:
+        """判断中位数"""
+        if self.tuhao_data[self.id] > np.median(list(self.tuhao_data.values())) * n:
             # 抓取同一天（抓时间）的同名联赛（抓比赛名）的下注金额的平均值（中位数），如果是饰品菠菜网站，下注最高的3人的下注额通常会显示算这三个人的就行，当场比赛的下注额为平均值N倍
             return True
+        else:
+            return False
 
 
 def update_data(name='dota2'):
@@ -179,20 +183,18 @@ def main():
     update_data(name='dota2')
     dota2 = Llf('dota2')
     dota2.get_sub_data()
-    while True:
-        if datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000) \
-                - datetime.datetime.now() \
-                == datetime.timedelta(seconds=300):
+    recent_time = datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
 
+    time_difference = datetime.timedelta(seconds=300)
+    while True:
+        if recent_time - datetime.datetime.now() <= time_difference:
             update_data(name='dota2')
             dota2.get_sub_data()
+            recent_time = datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
 
-        if datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000) \
-                - datetime.datetime.now() \
-                < datetime.timedelta(seconds=300):
             dota2.send_message()
-        else:
-            print('不推送')
+
+        time.sleep(10)
 
 
 if __name__ == '__main__':
