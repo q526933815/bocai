@@ -75,5 +75,11 @@ def get_tuhao(sub_id):
     return result
 
 
+def get_rank(name):
+    post = my_db[name + '_rank']
+    result = post.find()
+    return result
+
+
 if __name__ == '__main__':
-    find_front_league('dota2', 1554715059.571715, 2002727)
+    get_rank('dota2')

@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import datetime
 import numpy as np
 import time
+from fuzzywuzzy import fuzz
 
 
 class UpdateData:
@@ -23,7 +24,7 @@ class UpdateData:
         req = requests.get(base_data_url)
 
         self.base_data = req.json()
-        print('更新基础数据库')
+        print('更新基础数据库', req.status_code, req.url)
         mongo_data.update_data(self.name, self.base_data['datas']['list'])
 
     def get_sub_list(self):
@@ -57,7 +58,7 @@ class UpdateData:
         rank_item = {}
         a_list = soup.find(class_='ranking-list').find_all('a')
 
-        for a in a_list[:30]:
+        for a in a_list:
             # print(a['href'], a.get_text())
             rank_item['team_id'] = a['href'].split('/')[-1]
             rank_item['rank'] = a.get_text().split()[0]
@@ -115,6 +116,7 @@ class Llf:
 
     def send_message(self):
         """是否推送"""
+
         for sub in self.sub_list:
             tuhao_data = self.get_front_league()
             sub = Sub(sub, tuhao_data)
@@ -126,9 +128,10 @@ class Llf:
 
 
 class Sub:
-    def __init__(self, sub, tuhao_data):
+    def __init__(self, sub, tuhao_data, rank_data):
         self.sub = sub
         self.tuhao_data = tuhao_data
+        self.rank_data = rank_data
         self.vs1_name = sub['vs1']['name']
         self.vs2_name = sub['vs2']['name']
         self.id = sub['id']
@@ -136,9 +139,16 @@ class Sub:
     @staticmethod
     def get_vs_rank(vs_name):
         """模糊匹配名"""
+        rank_data = mongo_data.get_rank('dota2')
+        ll = []
+        for i in rank_data:
+            team_name = i['team_name']
+            ll.append([fuzz.ratio(team_name, vs_name), team_name])
+        print(vs_name, sorted(ll, reverse=True))
 
         # todo 模糊匹配配算法
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
+
         rank = 0
         return rank
 
@@ -155,7 +165,7 @@ class Sub:
     def llf_odds(self):
         """判断赔率"""
         odds = self.sub['vs1']['odds']
-        if odds <= 1.1 or odds >= 9:
+        if odds <= 0.1 or odds >= 9:
             # 判断赔率 < 1.1 or > 9
             return True
         else:
@@ -199,7 +209,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    Sub.get_vs_rank('RNG')
     # dota2 = Llf('dota2')
     # dota2.get_sub_data()
     # print(dota2.recent_time)
