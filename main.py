@@ -57,7 +57,8 @@ class UpdateData:
         soup = BeautifulSoup(req.text, "lxml")
         rank_item = {}
         a_list = soup.find(class_='ranking-list').find_all('a')
-
+        selt = 'body > div > div:nth-child(1) > div > ul.pagination > li:nth-child(6) > a'
+        # todo 获取最后页数
         for a in a_list:
             # print(a['href'], a.get_text())
             rank_item['team_id'] = a['href'].split('/')[-1]
@@ -138,14 +139,18 @@ class Sub:
 
     @staticmethod
     def get_vs_rank(vs_name):
+        from fuzzyfinder import fuzzyfinder
         """模糊匹配名"""
         rank_data = mongo_data.get_rank('dota2')
         ll = []
+        ln = []
         for i in rank_data:
             team_name = i['team_name']
+            ln.append(team_name)
             ll.append([fuzz.ratio(team_name, vs_name), team_name])
         print(vs_name, sorted(ll, reverse=True))
-
+        suggestions = fuzzyfinder(vs_name, ln)
+        print(list(suggestions))
         # todo 模糊匹配配算法
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
 
