@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import datetime
 import numpy as np
 import time
-from fuzzywuzzy import fuzz
 
 
 class UpdateData:
@@ -57,7 +56,6 @@ class UpdateData:
         soup = BeautifulSoup(req.text, "lxml")
         rank_item = {}
         a_list = soup.find(class_='ranking-list').find_all('a')
-        selt = 'body > div > div:nth-child(1) > div > ul.pagination > li:nth-child(6) > a'
         # todo 获取最后页数
         for a in a_list:
             # print(a['href'], a.get_text())
@@ -65,7 +63,23 @@ class UpdateData:
             rank_item['rank'] = a.get_text().split()[0]
             rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
             rank_item['team_rank_value'] = a.get_text().split()[-1]
+            rank_item['team_short_name'] = self.get_short_name(rank_item)
             mongo_data.update_rank_data(self.name, rank_item)
+
+    def get_short_name(self, rank_item):
+        import re
+        if self.name == 'dota2':
+            url = 'https://www.gosugamers.net/dota2/teams/{}'
+        elif self.name == 'csgo':
+            url = 'https://www.gosugamers.net/counterstrike/teams/{}'
+        para_name = f"{rank_item['team_id']}-{re.sub('|'.join([' ', '.']), '-', rank_item['team_name'].lower())}"
+        req_url = url.format(para_name)
+        req = requests.get(req_url)
+        print(req.text)
+        soup = BeautifulSoup(req.text, "lxml")
+        short_name = soup.find('h3', class_='name').get_text()
+        print(short_name)
+        return short_name
 
 
 class Llf:
@@ -129,6 +143,8 @@ class Llf:
 
 
 class Sub:
+    """计算每一个sub"""
+
     def __init__(self, sub, tuhao_data, rank_data):
         self.sub = sub
         self.tuhao_data = tuhao_data
@@ -139,22 +155,19 @@ class Sub:
 
     @staticmethod
     def get_vs_rank(vs_name):
-        from fuzzyfinder import fuzzyfinder
+        import difflib
         """模糊匹配名"""
         rank_data = mongo_data.get_rank('dota2')
-        ll = []
-        ln = []
+        ll2 = []
         for i in rank_data:
             team_name = i['team_name']
-            ln.append(team_name)
-            ll.append([fuzz.ratio(team_name, vs_name), team_name])
-        print(vs_name, sorted(ll, reverse=True))
-        suggestions = fuzzyfinder(vs_name, ln)
-        print(list(suggestions))
-        # todo 模糊匹配配算法
+            rank = i['rank']
+            ll2.append([difflib.SequenceMatcher(None, team_name, vs_name).ratio(), team_name, rank])
+
+        rank = sorted(ll2, reverse=True)[0][2]
+
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
 
-        rank = 0
         return rank
 
     def llf_rank(self):
@@ -194,7 +207,7 @@ def update_data(name='dota2'):
 
 
 def main():
-    """主程序逻辑是这样，但是还不能用"""
+    """主程序逻辑"""
 
     update_data(name='dota2')
     dota2 = Llf('dota2')
@@ -214,8 +227,8 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    Sub.get_vs_rank('RNG')
+    main()
+    # Sub.get_vs_rank('VP')
     # dota2 = Llf('dota2')
     # dota2.get_sub_data()
     # print(dota2.recent_time)
