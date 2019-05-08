@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import datetime
 import numpy as np
 import time
+from threading import Thread
 
 
 class UpdateData:
@@ -54,17 +55,22 @@ class UpdateData:
             url = 'https://www.gosugamers.net/counterstrike/rankings/list'
         req = requests.get(url)
         soup = BeautifulSoup(req.text, "lxml")
-        rank_item = {}
         a_list = soup.find(class_='ranking-list').find_all('a')
         # todo 获取最后页数
-        for a in a_list:
-            # print(a['href'], a.get_text())
-            rank_item['team_id'] = a['href'].split('/')[-1]
-            rank_item['rank'] = a.get_text().split()[0]
-            rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
-            rank_item['team_rank_value'] = a.get_text().split()[-1]
-            rank_item['team_short_name'] = self.get_short_name(rank_item)
-            mongo_data.update_rank_data(self.name, rank_item)
+        ts = [Thread(target=self.update_rank, args=(a,)) for a in a_list]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+
+    def update_rank(self, a):
+        rank_item = {}
+        rank_item['team_id'] = a['href'].split('/')[-1]
+        rank_item['rank'] = a.get_text().split()[0]
+        rank_item['team_name'] = ' '.join(a.get_text().split()[1:-1])
+        rank_item['team_rank_value'] = a.get_text().split()[-1]
+        rank_item['team_short_name'] = self.get_short_name(rank_item)
+        mongo_data.update_rank_data(self.name, rank_item)
 
     def get_short_name(self, rank_item):
         import re
@@ -75,7 +81,7 @@ class UpdateData:
         para_name = f"{rank_item['team_id']}-{re.sub('|'.join([' ', '.']), '-', rank_item['team_name'].lower())}"
         req_url = url.format(para_name)
         req = requests.get(req_url)
-        print(req.text)
+        # print(req.text)
         soup = BeautifulSoup(req.text, "lxml")
         short_name = soup.find('h3', class_='name').get_text()
         print(short_name)
@@ -167,7 +173,7 @@ class Sub:
         rank = sorted(ll2, reverse=True)[0][2]
 
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
-
+        print(vs_name, sorted(ll2, reverse=True)[0])
         return rank
 
     def llf_rank(self):
