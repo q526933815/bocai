@@ -6,7 +6,7 @@ import datetime
 import numpy as np
 import time
 from threading import Thread
-import threading
+
 
 class UpdateData:
     """刷新数据"""
@@ -23,15 +23,16 @@ class UpdateData:
         base_data_url = f'https://www.dota188.com/api/match/list.do?status=run&game={self.name}'
         req = requests.get(base_data_url)
 
-        self.base_data = req.json()
-        print('更新基础数据库', req.status_code, req.url)
-        mongo_data.update_data(self.name, self.base_data['datas']['list'])
+        self.base_data = req.json()['datas']['list']
+
+        print('更新基础数据库', req.url, req.status_code, len(self.base_data))
+        mongo_data.update_data(self.name, self.base_data)
 
     def get_sub_list(self):
         """解析当前网站上的比赛上所有的可下注场，获取id列表"""
-        print('获取更新列表')
+        print('获取可下注场列表')
         self.sub_id_list = []
-        for data in self.base_data['datas']['list']:
+        for data in self.base_data:
             for sub in data['sublist']:
                 sub_id = sub['id']
                 self.sub_id_list.append(sub_id)
@@ -46,6 +47,7 @@ class UpdateData:
             req = requests.get(url)
             json_data = json.loads(req.text)
             mongo_data.update_tuhao_data(_id, json_data)
+            # todo 要不也多线程？
 
     def get_rank(self):
         """获取队伍的rank排名"""
@@ -57,12 +59,13 @@ class UpdateData:
         soup = BeautifulSoup(req.text, "lxml")
         a_list = soup.find(class_='ranking-list').find_all('a')
 
-        print('alist_num', len(a_list))
+        print('rank数据', len(a_list))
         ts = [Thread(target=self.update_rank, args=(a,)) for a in a_list]
+        print('开启多线程获取rank数据')
         for t in ts:
             t.start()
             # time.sleep(0.5)
-            print(t.name)
+            # print(t.name)
         for t in ts:
             t.join()
 
@@ -86,14 +89,14 @@ class UpdateData:
         req_url = url.format(para_name)
         req = requests.get(req_url)
         while req.status_code == 503:
-            print('503重试',Thread.name)
+            print('teams页面503重试', Thread.name, req.url, req)
             time.sleep(0.5)
             req = requests.get(req_url)
-        print(rank_item['team_name'], req.url, req)
+        # print(rank_item['team_name'], req.url, req)
         # print(req.text)
         soup = BeautifulSoup(req.text, "lxml")
         short_name = soup.find('h3', class_='name').get_text().strip()
-        print(short_name)
+        # print(short_name)
         return short_name
 
 
@@ -150,11 +153,14 @@ class Llf:
         for sub in self.sub_list:
             tuhao_data = self.get_front_league()
             sub = Sub(sub, tuhao_data)
-            _ = [sub.llf_rank(), sub.llf_odds(), sub.llf_match()]
-            print(sub.id, _)
-            if all(_):
+            _ = {'rank': sub.llf_rank(), 'odds': sub.llf_odds(), 'match': sub.llf_match()}
+            print('#######################')
+            print('评判结果', sub.id, _)
+            if all(_.values()):
                 """触发推送"""
                 print("推送消息:关注这场比赛", sub.id, sub.vs1_name, sub.vs2_name)
+            else:
+                print('无需推送')
 
 
 class Sub:
@@ -182,7 +188,7 @@ class Sub:
         rank = sorted(ll2, reverse=True)[0][2]
 
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
-        print(vs_name, sorted(ll2, reverse=True)[0])
+        print(vs_name, '模糊匹配', sorted(ll2, reverse=True)[0])
         return int(rank)
 
     def llf_rank(self):
