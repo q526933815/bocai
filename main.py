@@ -6,7 +6,7 @@ import datetime
 import numpy as np
 import time
 from threading import Thread
-
+import threading
 
 class UpdateData:
     """刷新数据"""
@@ -56,10 +56,13 @@ class UpdateData:
         req = requests.get(url)
         soup = BeautifulSoup(req.text, "lxml")
         a_list = soup.find(class_='ranking-list').find_all('a')
-        # todo 获取最后页数
+
+        print('alist_num', len(a_list))
         ts = [Thread(target=self.update_rank, args=(a,)) for a in a_list]
         for t in ts:
             t.start()
+            # time.sleep(0.5)
+            print(t.name)
         for t in ts:
             t.join()
 
@@ -78,12 +81,18 @@ class UpdateData:
             url = 'https://www.gosugamers.net/dota2/teams/{}'
         elif self.name == 'csgo':
             url = 'https://www.gosugamers.net/counterstrike/teams/{}'
-        para_name = f"{rank_item['team_id']}-{re.sub('|'.join([' ', '.']), '-', rank_item['team_name'].lower())}"
+
+        para_name = rank_item['team_id'] + '-' + re.sub('|'.join([' ', '\\.']), '-', rank_item['team_name'].lower())
         req_url = url.format(para_name)
         req = requests.get(req_url)
+        while req.status_code == 503:
+            print('503重试',Thread.name)
+            time.sleep(0.5)
+            req = requests.get(req_url)
+        print(rank_item['team_name'], req.url, req)
         # print(req.text)
         soup = BeautifulSoup(req.text, "lxml")
-        short_name = soup.find('h3', class_='name').get_text()
+        short_name = soup.find('h3', class_='name').get_text().strip()
         print(short_name)
         return short_name
 
@@ -151,10 +160,10 @@ class Llf:
 class Sub:
     """计算每一个sub"""
 
-    def __init__(self, sub, tuhao_data, rank_data):
+    def __init__(self, sub, tuhao_data):
         self.sub = sub
         self.tuhao_data = tuhao_data
-        self.rank_data = rank_data
+
         self.vs1_name = sub['vs1']['name']
         self.vs2_name = sub['vs2']['name']
         self.id = sub['id']
@@ -174,7 +183,7 @@ class Sub:
 
         # https://www.gosugamers.net/dota2/rankings 全名，简称，映射
         print(vs_name, sorted(ll2, reverse=True)[0])
-        return rank
+        return int(rank)
 
     def llf_rank(self):
         """判断两方队伍排名均 > 30"""
