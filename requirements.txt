@@ -2,6 +2,7 @@ beautifulsoup4==4.7.1
 bs4==0.0.1
 certifi==2019.3.9
 chardet==3.0.4
+fake-useragent==0.1.11
 idna==2.8
 lxml==4.3.3
 numpy==1.16.3
