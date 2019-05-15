@@ -44,7 +44,7 @@ def find_offer_data(sheet_name, time):
     offer_data = list(result)[0]
     # for _ in offer_data:
     #     print(_)
-    # print('获取最近比赛数据成功', offer_data)
+    print('获取最近比赛数据成功', offer_data)
     return offer_data
 
 
@@ -82,4 +82,5 @@ def get_rank(name):
 
 
 if __name__ == '__main__':
-    get_rank('dota2')
+    # get_rank('dota2')
+    pass

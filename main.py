@@ -6,6 +6,9 @@ import datetime
 import numpy as np
 import time
 from threading import Thread
+from fake_useragent import UserAgent
+
+user_agent = UserAgent()
 
 
 class UpdateData:
@@ -16,12 +19,14 @@ class UpdateData:
         self.sub_id_list = []
 
     base_data = ''
+    headers = {'User-Agent': user_agent.random}
 
     def update_base_data(self):
         """获取当前网站上显示的所有比赛，更新基础数据库"""
 
         base_data_url = f'https://www.dota188.com/api/match/list.do?status=run&game={self.name}'
-        req = requests.get(base_data_url)
+
+        req = requests.get(base_data_url, headers=self.headers)
 
         self.base_data = req.json()['datas']['list']
 
@@ -64,7 +69,7 @@ class UpdateData:
         print('开启多线程获取rank数据')
         for t in ts:
             t.start()
-            # time.sleep(0.5)
+            time.sleep(0.01)
             # print(t.name)
         for t in ts:
             t.join()
@@ -87,13 +92,14 @@ class UpdateData:
 
         para_name = rank_item['team_id'] + '-' + re.sub('|'.join([' ', '\\.']), '-', rank_item['team_name'].lower())
         req_url = url.format(para_name)
-        req = requests.get(req_url)
+        req = requests.get(req_url, headers=self.headers)
         while req.status_code == 503:
-            print('teams页面503重试', Thread.name, req.url, req)
+            print('teams页面503重试', req.url, req)
             time.sleep(0.5)
-            req = requests.get(req_url)
+            req = requests.get(req_url, headers=self.headers)
         # print(rank_item['team_name'], req.url, req)
         # print(req.text)
+        print('teams页面成功', req.url, req)
         soup = BeautifulSoup(req.text, "lxml")
         short_name = soup.find('h3', class_='name').get_text().strip()
         # print(short_name)
@@ -154,7 +160,7 @@ class Llf:
             tuhao_data = self.get_front_league()
             sub = Sub(sub, tuhao_data)
             _ = {'rank': sub.llf_rank(), 'odds': sub.llf_odds(), 'match': sub.llf_match()}
-            print('#######################')
+            print('===================================================')
             print('评判结果', sub.id, _)
             if all(_.values()):
                 """触发推送"""
@@ -233,18 +239,30 @@ def main():
     update_data(name='dota2')
     dota2 = Llf('dota2')
     dota2.get_sub_data()
-    recent_time = datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
-
+    recent_time = datetime.datetime.fromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
+    print('初始化：最近一场时间', recent_time, '当前', datetime.datetime.now())
     time_difference = datetime.timedelta(seconds=300)
     while True:
+        print('进入循环')
         if recent_time - datetime.datetime.now() <= time_difference:
+            print('最近一场时间', recent_time, '当前', datetime.datetime.now(), '时差', time_difference)
             update_data(name='dota2')
             dota2.get_sub_data()
-            recent_time = datetime.datetime.utcfromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
+            recent_time = datetime.datetime.fromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
 
             dota2.send_message()
+            print('等待10s')
+            time.sleep(10)
+        else:
+            print('最近一场时间', recent_time, '当前', datetime.datetime.now())
+            print('没到点呢,开始休眠')
+            sleep_time = recent_time - datetime.datetime.now() - time_difference
 
-        time.sleep(10)
+            while sleep_time != datetime.timedelta(seconds=0):
+                sleep_time = recent_time - datetime.datetime.now() - time_difference
+                print('休眠时间', sleep_time, sleep_time.seconds, end='\r')
+                time.sleep(1)
+            time.sleep(sleep_time.seconds)
 
 
 if __name__ == '__main__':
