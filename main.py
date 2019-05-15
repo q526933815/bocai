@@ -258,11 +258,12 @@ def main():
             print('没到点呢,开始休眠')
             sleep_time = recent_time - datetime.datetime.now() - time_difference
 
-            while sleep_time != datetime.timedelta(seconds=0):
+            while sleep_time.seconds > 0:
                 sleep_time = recent_time - datetime.datetime.now() - time_difference
-                print('休眠时间', sleep_time, sleep_time.seconds, end='\r')
-                time.sleep(1)
-            time.sleep(sleep_time.seconds)
+
+                print('休眠时间', sleep_time, end='\r')
+                time.sleep(0.01)
+            # time.sleep(sleep_time.seconds)
 
 
 if __name__ == '__main__':
