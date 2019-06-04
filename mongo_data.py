@@ -18,19 +18,19 @@ def update_data(sheet_name, items):
     post = my_db[sheet_name + '_base']
     for _ in items:
         result = post.update_one({'id': _['id']}, {"$set": _}, upsert=True)
-        print('更新基础数据', result.raw_result)
+        # print(result.raw_result)
 
 
 def update_tuhao_data(sub_id, data):
     post = my_db['tuhao']
     result = post.update_one({'id': sub_id}, {"$set": data}, upsert=True)
-    print('更新土豪数据', result.raw_result)
+    # print(result.raw_result)
 
 
 def update_rank_data(sheet_name, item):
     post = my_db[sheet_name + '_rank']
     result = post.update_one({'rank': item['rank']}, {"$set": item}, upsert=True)
-    print('更新rank', result.raw_result)
+    # print(result.raw_result)
 
 
 def find_offer_data(sheet_name, time):
@@ -51,13 +51,14 @@ def find_offer_data(sheet_name, time):
 def find_match_by_id(sheet_name, match_id):
     post = my_db[sheet_name + '_base']
     result = post.find_one({'id': match_id})
-
+    # print(result)
     return result
 
 
 def find_match_by_time(sheet_name, match_time):
     post = my_db[sheet_name + '_base']
     result = post.find_one({'time': match_time})
+    # print(result)
     return result
 
 
