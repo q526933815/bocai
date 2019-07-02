@@ -45,6 +45,7 @@ def find_offer_data(sheet_name, time):
     # for _ in offer_data:
     #     print(_)
     print('获取最近比赛数据成功', offer_data)
+    # todo:当天不再有比赛
     return offer_data
 
 

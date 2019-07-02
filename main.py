@@ -243,26 +243,20 @@ def main():
     print('初始化：最近一场时间', recent_time, '当前', datetime.datetime.now())
     time_difference = datetime.timedelta(seconds=300)
     while True:
+
         print('进入循环')
-        if recent_time - datetime.datetime.now() <= time_difference:
+        sleep_time = recent_time - datetime.datetime.now() - time_difference
+        if sleep_time > 0:
+            print('最近一场时间', recent_time, '当前', datetime.datetime.now(), '休眠时间', sleep_time, end='\r')
+            time.sleep(0.01)
+        else:
             print('最近一场时间', recent_time, '当前', datetime.datetime.now(), '时差', time_difference)
             update_data(name='dota2')
             dota2.get_sub_data()
             recent_time = datetime.datetime.fromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
-
             dota2.send_message()
             print('等待10s')
             time.sleep(10)
-        else:
-            print('最近一场时间', recent_time, '当前', datetime.datetime.now())
-            print('没到点呢,开始休眠')
-            sleep_time = recent_time - datetime.datetime.now() - time_difference
-
-            while sleep_time.seconds > 0:
-                sleep_time = recent_time - datetime.datetime.now() - time_difference
-
-                print('休眠时间', sleep_time, end='\r')
-                time.sleep(0.01)
 
 
 if __name__ == '__main__':
