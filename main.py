@@ -263,7 +263,6 @@ def main():
 
                 print('休眠时间', sleep_time, end='\r')
                 time.sleep(0.01)
-            time.sleep(sleep_time.seconds)
 
 
 if __name__ == '__main__':
