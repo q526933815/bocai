@@ -41,12 +41,12 @@ def find_offer_data(sheet_name, time):
                              {'$match': {'time': {'$gte': time}}},
                              {'$sort': {'time': 1}},
                              {'$limit': 1}])
-    offer_data = list(result)[0]
+    offer_data = list(result)
     # for _ in offer_data:
     #     print(_)
     print('获取最近比赛数据成功', offer_data)
     # todo:当天不再有比赛
-    return offer_data
+    return offer_data[0]
 
 
 def find_match_by_id(sheet_name, match_id):
