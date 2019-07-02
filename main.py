@@ -242,11 +242,10 @@ def main():
     recent_time = datetime.datetime.fromtimestamp(dota2.recent_time / 1000)  # 时间戳转时间
     print('初始化：最近一场时间', recent_time, '当前', datetime.datetime.now())
     time_difference = datetime.timedelta(seconds=300)
+    print('进入循环')
     while True:
-
-        print('进入循环')
         sleep_time = recent_time - datetime.datetime.now() - time_difference
-        if sleep_time > 0:
+        if sleep_time > datetime.timedelta(0):
             print('最近一场时间', recent_time, '当前', datetime.datetime.now(), '休眠时间', sleep_time, end='\r')
             time.sleep(0.01)
         else:
